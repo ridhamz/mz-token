@@ -13,9 +13,9 @@ module.exports = {
   contracts_build_directory: './src/abis/',
 
   // Configure your compilers
-  /*compilers: {
+  compilers: {
     solc: {
-      version: '0.8.11',
+      version: '^0.8.0',
     },
-  },*/
+  },
 };

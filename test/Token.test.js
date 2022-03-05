@@ -1,7 +1,9 @@
 const Token = artifacts.require('./Token');
 require('chai').use(require('chai-as-promised')).should();
 
-contract('Token', (accounts) => {
+const tokens = (n) => web3.utils.toWei(n.toString(), 'ether');
+
+contract('Token', ([deployer, receiver]) => {
   let token;
   const name = 'mz-token';
   const symbol = 'MZ';
@@ -34,25 +36,81 @@ contract('Token', (accounts) => {
     });
 
     it('assigns the total supply to the deployer', async () => {
-      const result = await token.balanceOf(accounts[0]);
+      const result = await token.balanceOf(deployer);
       result.toString().should.equal(totalSupply);
     });
   });
 
   describe('sending tokens', () => {
+    let amount;
+    let result;
+    beforeEach(async () => {
+      amount = tokens(100);
+      token = await Token.new();
+      result = await token.transfer(receiver, amount, { from: deployer });
+    });
+
     it('transfers token balances', async () => {
-      let balanceOf = await token.balanceOf(accounts[0]);
-      console.log('deployer ', balanceOf.toString());
-      balanceOf = await token.balanceOf(accounts[1]);
-      console.log('reciever ', balanceOf.toString());
+      const balanceOf1 = await token.balanceOf(deployer);
+      balanceOf1.toString().should.equal(tokens(999900));
+      const balanceOf2 = await token.balanceOf(receiver);
+      balanceOf2.toString().should.equal(tokens(100));
+    });
 
-      // transfer
-      await token.transfer(accounts[1], '1000', { from: accounts[0] });
+    it('emits a transfer event', async () => {
+      const log = result.logs[0];
+      log.event.should.equal('Transfer');
+      const event = log.args;
+      event.from.toString().should.equal(deployer, 'from is correct');
+      event.to.toString().should.equal(receiver, 'to is correct');
+      event.value
+        .toString()
+        .should.equal(amount.toString(), 'value is correct');
+    });
+  });
 
-      balanceOf = await token.balanceOf(accounts[0]);
-      console.log('deployer ', balanceOf.toString());
-      balanceOf = await token.balanceOf(accounts[1]);
-      console.log('reciever ', balanceOf.toString());
+  describe('success', () => {
+    let amount;
+    let result;
+    beforeEach(async () => {
+      amount = tokens(100);
+      token = await Token.new();
+      result = await token.transfer(receiver, amount, { from: deployer });
+    });
+
+    it('transfers token balances', async () => {
+      const balanceOf1 = await token.balanceOf(deployer);
+      balanceOf1.toString().should.equal(tokens(999900));
+      const balanceOf2 = await token.balanceOf(receiver);
+      balanceOf2.toString().should.equal(tokens(100));
+    });
+
+    it('emits a transfer event', async () => {
+      const log = result.logs[0];
+      log.event.should.equal('Transfer');
+      const event = log.args;
+      event.from.toString().should.equal(deployer, 'from is correct');
+      event.to.toString().should.equal(receiver, 'to is correct');
+      event.value
+        .toString()
+        .should.equal(amount.toString(), 'value is correct');
+    });
+  });
+
+  describe('failure', () => {
+    let amount;
+    let result;
+    beforeEach(async () => {
+      amount = tokens(100);
+      token = await Token.new();
+      result = await token.transfer(receiver, amount, { from: deployer });
+    });
+
+    it('rejects insufficient balance', async () => {
+      const balanceOf1 = await token.balanceOf(deployer);
+      balanceOf1.toString().should.equal(tokens(999900));
+      const balanceOf2 = await token.balanceOf(receiver);
+      balanceOf2.toString().should.equal(tokens(100));
     });
   });
 });
