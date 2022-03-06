@@ -2,6 +2,7 @@ const Token = artifacts.require('./Token');
 require('chai').use(require('chai-as-promised')).should();
 
 const tokens = (n) => web3.utils.toWei(n.toString(), 'ether');
+const EVM_REVERT = 'VM Exception while processing transaction: revert';
 
 contract('Token', ([deployer, receiver]) => {
   let token;
@@ -107,10 +108,15 @@ contract('Token', ([deployer, receiver]) => {
     });
 
     it('rejects insufficient balance', async () => {
-      const balanceOf1 = await token.balanceOf(deployer);
-      balanceOf1.toString().should.equal(tokens(999900));
-      const balanceOf2 = await token.balanceOf(receiver);
-      balanceOf2.toString().should.equal(tokens(100));
+      let invalidAmount = tokens(100000000); // 100 million greater than total supply
+      await token
+        .transfer(receiver, invalidAmount, { from: deployer })
+        .should.be.rejectedWith(EVM_REVERT);
+
+      invalidAmount = tokens(10);
+      await token
+        .transfer(deployer, invalidAmount, { from: receiver })
+        .should.be.rejectedWith(EVM_REVERT);
     });
   });
 });
